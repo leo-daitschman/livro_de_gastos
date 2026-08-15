@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Livro de Gastos</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTGl2cm8gZGUgR2FzdG9zIiwic2hvcnRfbmFtZSI6Ikdhc3RvcyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRjFFQ0REIiwidGhlbWVfY29sb3IiOiIjMkY2NjU5In0=">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body, html { margin:0; padding:0; }
+  body {
+    --paper: #F1ECDD; --paper-deep: #E8E1CB; --line: #D9CFAF; --ink: #2A2620;
+    --ink-soft: #746b58; --receipt: #FFFDF6; --rust: #B24B2C; --teal: #2F6659;
+    --gold: #C9A227; --danger: #A63A2C;
+    font-family: 'Inter', sans-serif; color: var(--ink); background: var(--paper);
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(42,38,32,0.035) 28px);
+    min-height: 100vh; padding: 20px 14px 60px;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  .brand { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  .brand h1 { font-family:'Space Mono',monospace; font-size: 20px; letter-spacing:.5px; margin:0; text-transform: uppercase; }
+  .setup-banner { background:#FFF6CF; border:1px solid var(--gold); border-radius:4px; padding:14px 16px; font-size:13px; margin-bottom:18px; line-height:1.5; }
+  .setup-banner code { background:#00000010; padding:1px 5px; border-radius:3px; }
+  .stamp-row { display:flex; justify-content:center; margin: 6px 0 22px; }
+  .stamp { border:3px solid var(--rust); color:var(--rust); border-radius:8px; padding:10px 22px; transform:rotate(-3deg); text-align:center; font-family:'Space Mono',monospace; }
+  .stamp .lbl { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
+  .stamp .val { font-size:24px; font-weight:700; }
+  .month-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:4px; }
+  .month-nav button { background:transparent; border:1px solid var(--ink); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
+  .month-nav .month-label { font-family:'Space Mono',monospace; font-size:15px; min-width:170px; text-align:center; text-transform:capitalize; }
+  .add-card { background:var(--receipt); border:1px solid var(--line); border-radius:4px; padding:18px; margin:20px 0; box-shadow:0 2px 0 var(--line); }
+  .add-grid { display:grid; grid-template-columns: 2fr 1fr; gap:12px; }
+  .add-grid .full { grid-column: 1 / -1; }
+  label { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-soft); margin-bottom:5px; font-weight:600; }
+  input[type=text], input[type=number], select {
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:3px; background:#fff;
+    font-family:'Inter',sans-serif; font-size:14px; color:var(--ink);
+  }
+  input:focus, select:focus { outline:2px solid var(--gold); outline-offset:1px; }
+  button { cursor:pointer; font-family:'Inter',sans-serif; font-weight:600; border:none; border-radius:3px; }
+  .btn-primary { background:var(--ink); color:var(--receipt); padding:11px 18px; font-size:14px; width:100%; margin-top:14px; }
+  .btn-primary:hover { background:#171410; }
+  .btn-primary:disabled { opacity:.6; }
+  .people-toggle { display:flex; gap:8px; }
+  .people-toggle button { flex:1; padding:9px; border:1px solid var(--line); background:#fff; font-size:13px; color:var(--ink-soft); }
+  .people-toggle button.active { background:var(--teal); color:#fff; border-color:var(--teal); }
+  .hint { font-size:11.5px; color:var(--ink-soft); margin-top:6px; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:20px 0; }
+  .summary-card { background:var(--receipt); border:1px solid var(--line); border-radius:4px; padding:14px; }
+  .summary-card h3 { margin:0 0 10px; font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:var(--ink-soft); }
+  .bar-row { margin-bottom:8px; font-size:12px; }
+  .bar-row .bar-top { display:flex; justify-content:space-between; margin-bottom:2px; }
+  .bar-track { height:6px; background:var(--paper-deep); border-radius:3px; overflow:hidden; }
+  .bar-fill { height:100%; background:var(--teal); }
+  .empty-note { font-size:12px; color:var(--ink-soft); }
+  .filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; align-items:center; }
+  .chip { padding:5px 11px; border:1px solid var(--line); border-radius:20px; font-size:12px; background:#fff; color:var(--ink-soft); cursor:pointer; }
+  .chip.active { background:var(--ink); color:var(--receipt); border-color:var(--ink); }
+  .search-input { max-width:220px; }
+  .receipt { background:var(--receipt); border:1px solid var(--line); border-radius:2px; box-shadow:0 3px 0 var(--line); position:relative; padding:6px 0 4px; }
+  .receipt::before { content:""; display:block; height:10px; background-image:radial-gradient(circle, var(--paper) 4px, transparent 4.2px); background-size:16px 16px; background-position:0 -3px; }
+  .tx-row { display:grid; grid-template-columns:74px 1fr auto; gap:10px; align-items:center; padding:9px 16px; border-bottom:1px dashed var(--line); font-family:'Space Mono',monospace; font-size:12.5px; }
+  .tx-row:last-child { border-bottom:none; }
+  .tx-date { color:var(--ink-soft); }
+  .tx-mid .tx-desc { font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; }
+  .tx-mid .tx-meta { color:var(--ink-soft); font-size:11px; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+  .tag { padding:1px 7px; border-radius:20px; background:var(--paper-deep); }
+  .tx-right { text-align:right; font-weight:700; }
+  @media (max-width: 560px) {
+    .add-grid { grid-template-columns:1fr; }
+    .summary-grid { grid-template-columns:1fr; }
+    .tx-row { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app-root">
+  <div class="wrap"><div class="brand"><h1>Livro de Gastos</h1></div>
+  <p style="font-family:'Space Mono',monospace;font-size:13px;">Carregando...</p></div>
+</div>
+
+<script>
+(function(){
+  // ============================================================
+  // COLE AQUI A URL DO SEU APPS SCRIPT (termina em /exec)
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx3g2H-t5udHx6eJU5lFqBqULDzO3eaX4SO2hoPTCx2rRhwikxUK2DwQh07sKTZQ19Y/exec";
+  // ============================================================
+
+  const root = document.getElementById('app-root');
+  const CATEGORIES = ["Alimentação","Transporte","Moradia","Saúde","Lazer","Educação","Compras","Contas fixas","Assinaturas","Outros"];
+  const DEFAULT_PAYMENTS = ["Pix","Dinheiro","Débito","Crédito"];
+
+  let allExpenses = [];
+  let currentMonth = new Date();
+  let filters = { category: null, person: null };
+  let search = "";
+  let selectedPerson = new URLSearchParams(location.search).get('eu') || "";
+
+  function monthKey(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0'); }
+  function fmtMoney(v){ return (v||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); }
+  function fmtMonthLabel(d){ return d.toLocaleDateString('pt-BR', {month:'long', year:'numeric'}); }
+  function fmtDateShort(iso){ const p = (iso||'').slice(0,10).split('-'); return p.length===3 ? p[2]+"/"+p[1] : iso; }
+  function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,'0')+"-"+String(d.getDate()).padStart(2,'0'); }
+  function normalize(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
+  function keyWord(desc){ return normalize(desc).split(/\s+/)[0] || ''; }
+  function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  async function fetchExpenses(){
+    const res = await fetch(SCRIPT_URL, { method: 'GET' });
+    if (!res.ok) throw new Error('Falha ao ler a planilha (' + res.status + ')');
+    const data = await res.json();
+    return data.map(r => ({
+      date: (r.data||'').toString().slice(0,10),
+      description: r.descricao,
+      value: Number(r.valor)||0,
+      category: r.categoria || 'Outros',
+      payment: r.pagamento || 'Não informado',
+      person: r.pessoa || ''
+    }));
+  }
+
+  async function postExpense(exp){
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        data: exp.date, descricao: exp.description, valor: exp.value,
+        categoria: exp.category, pagamento: exp.payment, pessoa: exp.person
+      })
+    });
+    if (!res.ok) throw new Error('Falha ao salvar (' + res.status + ')');
+    return res.json();
+  }
+
+  function suggestCategory(desc){
+    const kw = keyWord(desc);
+    if (!kw) return null;
+    const match = allExpenses.find(e => keyWord(e.description) === kw);
+    return match ? match.category : null;
+  }
+
+  function knownPeople(){
+    const set = new Set(allExpenses.map(e => e.person).filter(Boolean));
+    return Array.from(set);
+  }
+  function knownPayments(){
+    const set = new Set([...DEFAULT_PAYMENTS, ...allExpenses.map(e => e.payment).filter(Boolean)]);
+    return Array.from(set);
+  }
+
+  function computeTotals(list){
+    const byCat = {}, byPay = {}, byPerson = {};
+    let total = 0;
+    for (const e of list){
+      total += e.value;
+      byCat[e.category] = (byCat[e.category]||0) + e.value;
+      byPay[e.payment] = (byPay[e.payment]||0) + e.value;
+      byPerson[e.person] = (byPerson[e.person]||0) + e.value;
+    }
+    return { total, byCat, byPay, byPerson };
+  }
+
+  function barListHtml(obj){
+    const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    if (entries.length===0) return `<div class="empty-note">Nada por aqui ainda.</div>`;
+    const max = entries[0][1];
+    return entries.map(([k,v]) => `
+      <div class="bar-row">
+        <div class="bar-top"><span>${escapeHtml(k)}</span><span>${fmtMoney(v)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,(v/max*100))}%"></div></div>
+      </div>`).join('');
+  }
+
+  function renderSetupNeeded(){
+    root.innerHTML = `
+      <div class="wrap">
+        <div class="brand"><h1>Livro de Gastos</h1></div>
+        <div class="setup-banner">
+          <strong>Falta um passo:</strong> cole a URL do seu Apps Script na constante <code>SCRIPT_URL</code>,
+          no topo do arquivo HTML, e publique de novo. Sem isso a página não consegue ler nem salvar
+          nada na planilha.
+        </div>
+      </div>`;
+  }
+
+  function renderError(msg){
+    root.innerHTML = `
+      <div class="wrap">
+        <div class="brand"><h1>Livro de Gastos</h1></div>
+        <div class="setup-banner" style="background:#FBE2DC;border-color:var(--danger);">
+          <strong>Não consegui falar com a planilha.</strong><br>${escapeHtml(msg)}<br>
+          Verifique se a URL está certa e se a implantação do Apps Script está com acesso "Qualquer pessoa".
+        </div>
+      </div>`;
+  }
+
+  function render(){
+    const monthMatches = allExpenses.filter(e => e.date.slice(0,7) === monthKey(currentMonth));
+    const totals = computeTotals(monthMatches);
+    let filtered = monthMatches.filter(e => {
+      if (filters.category && e.category !== filters.category) return false;
+      if (filters.person && e.person !== filters.person) return false;
+      if (search && !normalize(e.description).includes(normalize(search))) return false;
+      return true;
+    }).sort((a,b) => b.date.localeCompare(a.date));
+
+    const people = knownPeople();
+    const payments = knownPayments();
+
+    root.innerHTML = `
+      <div class="wrap">
+        <div class="brand"><h1>Livro de Gastos</h1></div>
+
+        <div class="stamp-row">
+          <div class="stamp"><div class="lbl">Total do mês</div><div class="val">${fmtMoney(totals.total)}</div></div>
+        </div>
+
+        <div class="month-nav">
+          <button id="prev-month">‹</button>
+          <div class="month-label">${fmtMonthLabel(currentMonth)}</div>
+          <button id="next-month">›</button>
+        </div>
+
+        <div class="add-card">
+          <div class="add-grid">
+            <div class="full"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Combustível, Mercado, Netflix..."></div>
+            <div><label>Valor (R$)</label><input type="number" id="f-value" step="0.01" min="0" placeholder="0,00"></div>
+            <div><label>Categoria</label><select id="f-cat">${CATEGORIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}</select></div>
+            <div><label>Forma de pagamento</label><input type="text" id="f-pay" list="pay-options" placeholder="Ex: Crédito Itaú">
+              <datalist id="pay-options">${payments.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+            </div>
+            <div><label>Data</label><input type="text" id="f-date" value="${todayISO()}"></div>
+            <div class="full">
+              <label>Quem gastou</label>
+              <input type="text" id="f-person" list="people-options" value="${escapeHtml(selectedPerson)}" placeholder="Seu nome">
+              <datalist id="people-options">${people.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+            </div>
+          </div>
+          <button class="btn-primary" id="add-btn">Adicionar gasto</button>
+          <div class="hint">Dica: salve este link com <code>?eu=SeuNome</code> no final para o campo "Quem gastou" já vir preenchido.</div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card"><h3>Por categoria</h3>${barListHtml(totals.byCat)}</div>
+          <div class="summary-card"><h3>Por pagamento</h3>${barListHtml(totals.byPay)}</div>
+          <div class="summary-card"><h3>Por pessoa</h3>${barListHtml(totals.byPerson)}</div>
+        </div>
+
+        <div class="filters">
+          <span class="chip ${!filters.category?'active':''}" data-fc="">Todas categorias</span>
+          ${CATEGORIES.filter(c=>totals.byCat[c]).map(c=>`<span class="chip ${filters.category===c?'active':''}" data-fc="${escapeHtml(c)}">${escapeHtml(c)}</span>`).join('')}
+        </div>
+        <div class="filters">
+          <span class="chip ${!filters.person?'active':''}" data-fp="">Todos</span>
+          ${people.map(p=>`<span class="chip ${filters.person===p?'active':''}" data-fp="${escapeHtml(p)}">${escapeHtml(p)}</span>`).join('')}
+          <input type="text" class="search-input" id="search-input" placeholder="Buscar descrição..." value="${escapeHtml(search)}">
+        </div>
+
+        <div class="receipt">
+          ${filtered.length === 0 ? `<div class="tx-row"><div class="tx-mid"><div class="tx-desc">Nenhum gasto neste filtro.</div></div></div>` :
+            filtered.map(e => `
+            <div class="tx-row">
+              <div class="tx-date">${fmtDateShort(e.date)}</div>
+              <div class="tx-mid">
+                <div class="tx-desc">${escapeHtml(e.description)}</div>
+                <div class="tx-meta">
+                  <span class="tag">${escapeHtml(e.person)}</span>
+                  <span class="tag">${escapeHtml(e.payment)}</span>
+                  <span class="tag">${escapeHtml(e.category)}</span>
+                </div>
+              </div>
+              <div class="tx-right">${fmtMoney(e.value)}</div>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+    root.querySelector('#prev-month').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()-1); render(); };
+    root.querySelector('#next-month').onclick = () => { currentMonth.setMonth(currentMonth.getMonth()+1); render(); };
+
+    const descInput = root.querySelector('#f-desc');
+    descInput.oninput = () => {
+      const sug = suggestCategory(descInput.value);
+      if (sug) root.querySelector('#f-cat').value = sug;
+    };
+
+    root.querySelector('#add-btn').onclick = async () => {
+      const desc = root.querySelector('#f-desc').value.trim();
+      const value = parseFloat(root.querySelector('#f-value').value);
+      const cat = root.querySelector('#f-cat').value;
+      const pay = root.querySelector('#f-pay').value.trim() || 'Não informado';
+      const date = root.querySelector('#f-date').value.trim() || todayISO();
+      const person = root.querySelector('#f-person').value.trim();
+      if (!desc || isNaN(value) || value <= 0){ alert('Preencha a descrição e um valor válido maior que zero.'); return; }
+      if (!person){ alert('Preencha quem gastou.'); return; }
+      const btn = root.querySelector('#add-btn');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+      try {
+        const exp = { date, description: desc, value, category: cat, payment: pay, person };
+        await postExpense(exp);
+        selectedPerson = person;
+        allExpenses.push(exp);
+        render();
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false; btn.textContent = 'Adicionar gasto';
+        alert('Não consegui salvar agora: ' + err.message);
+      }
+    };
+
+    root.querySelectorAll('[data-fc]').forEach(chip => chip.onclick = () => { filters.category = chip.getAttribute('data-fc') || null; render(); });
+    root.querySelectorAll('[data-fp]').forEach(chip => chip.onclick = () => { filters.person = chip.getAttribute('data-fp') || null; render(); });
+    root.querySelector('#search-input').oninput = (ev) => { search = ev.target.value; };
+    root.querySelector('#search-input').onkeyup = (ev) => { if (ev.key === 'Enter') render(); };
+    root.querySelector('#search-input').onblur = () => render();
+  }
+
+  async function init(){
+    if (!SCRIPT_URL || SCRIPT_URL.indexOf('COLE_AQUI') === 0){
+      renderSetupNeeded();
+      return;
+    }
+    try {
+      allExpenses = await fetchExpenses();
+      render();
+    } catch (err) {
+      console.error(err);
+      renderError(err.message);
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
