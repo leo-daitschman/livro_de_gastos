@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Livro de Gastos</title>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTGl2cm8gZGUgR2FzdG9zIiwic2hvcnRfbmFtZSI6Ikdhc3RvcyIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjRjFFQ0REIiwidGhlbWVfY29sb3IiOiIjMkY2NjU5In0=">
+<title>Livro de Gastos Familiar</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIkxpdnJvIGRlIEdhc3RvcyBGYW1pbGlhciIsICJzaG9ydF9uYW1lIjogIkdhc3RvcyIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjRjFFQ0REIiwgInRoZW1lX2NvbG9yIjogIiMyRjY2NTkifQ==">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
   * { box-sizing: border-box; }
@@ -17,15 +17,17 @@
     background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(42,38,32,0.035) 28px);
     min-height: 100vh; padding: 20px 14px 60px;
   }
-  .wrap { max-width: 820px; margin: 0 auto; }
-  .brand { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
-  .brand h1 { font-family:'Space Mono',monospace; font-size: 20px; letter-spacing:.5px; margin:0; text-transform: uppercase; }
+  .wrap { max-width: 820px; margin: 0 auto; position: relative; padding-top: 56px; }
+  .money-deco { position:absolute; top:-8px; right:-6px; width:128px; height:auto; opacity:.95; pointer-events:none; }
+  .brand { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 14px; }
+  .brand-title h1 { font-family:'Space Mono',monospace; margin:0; text-transform:uppercase; line-height:1.15; }
+  .brand-title .line1 { display:block; font-size:19px; letter-spacing:.5px; font-weight:700; }
+  .brand-title .line2 { display:block; font-size:12px; letter-spacing:2.5px; font-weight:400; color:var(--teal); margin-top:2px; }
   .setup-banner { background:#FFF6CF; border:1px solid var(--gold); border-radius:4px; padding:14px 16px; font-size:13px; margin-bottom:18px; line-height:1.5; }
   .setup-banner code { background:#00000010; padding:1px 5px; border-radius:3px; }
-  .stamp-row { display:flex; justify-content:center; margin: 6px 0 22px; }
-  .stamp { border:3px solid var(--rust); color:var(--rust); border-radius:8px; padding:10px 22px; transform:rotate(-3deg); text-align:center; font-family:'Space Mono',monospace; }
+  .stamp { border:3px solid var(--rust); color:var(--rust); border-radius:8px; padding:9px 20px; transform:rotate(-3deg); text-align:center; font-family:'Space Mono',monospace; flex-shrink:0; }
   .stamp .lbl { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
-  .stamp .val { font-size:24px; font-weight:700; }
+  .stamp .val { font-size:22px; font-weight:700; }
   .month-nav { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:4px; }
   .month-nav button { background:transparent; border:1px solid var(--ink); width:30px; height:30px; border-radius:50%; font-size:16px; cursor:pointer; }
   .month-nav .month-label { font-family:'Space Mono',monospace; font-size:15px; min-width:170px; text-align:center; text-transform:capitalize; }
@@ -71,12 +73,14 @@
     .add-grid { grid-template-columns:1fr; }
     .summary-grid { grid-template-columns:1fr; }
     .tx-row { grid-template-columns:1fr; }
+    .money-deco { width:84px; top:-4px; }
+    .wrap { padding-top:44px; }
   }
 </style>
 </head>
 <body>
 <div id="app-root">
-  <div class="wrap"><div class="brand"><h1>Livro de Gastos</h1></div>
+  <div class="wrap"><div class="brand"><div class="brand-title"><h1><span class="line1">Livro de Gastos</span><span class="line2">Familiar</span></h1></div></div>
   <p style="font-family:'Space Mono',monospace;font-size:13px;">Carregando...</p></div>
 </div>
 
@@ -88,8 +92,8 @@
   // ============================================================
 
   const root = document.getElementById('app-root');
-  const CATEGORIES = ["Alimentação","Transporte","Moradia","Saúde","Lazer","Educação","Compras","Contas fixas","Assinaturas","Outros"];
-  const DEFAULT_PAYMENTS = ["Pix","Dinheiro","Débito","Crédito"];
+  const CATEGORIES = ["Alimentação","Assinaturas","Compras","Contas fixas","Educação","Lazer","Moradia","Outros","Saúde","Transporte"];
+  const PAYMENTS = ["Boleto","Cartão de crédito","Cartão de crédito parcelado","Cartão de débito","Cartão Refeição","PIX"];
 
   let allExpenses = [];
   let currentMonth = new Date();
@@ -133,6 +137,30 @@
     return res.json();
   }
 
+  function moneyDecoSvg(){
+    return `<svg class="money-deco" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g transform="translate(4,14) rotate(-8)">
+        <rect x="0" y="0" width="72" height="42" rx="4" fill="var(--receipt)" stroke="var(--rust)" stroke-width="2"/>
+        <circle cx="36" cy="21" r="12" fill="none" stroke="var(--rust)" stroke-width="1.5"/>
+        <text x="36" y="26" font-family="'Space Mono',monospace" font-size="12" fill="var(--rust)" text-anchor="middle" font-weight="700">R$</text>
+        <line x1="7" y1="7" x2="16" y2="7" stroke="var(--rust)" stroke-width="1.5"/>
+        <line x1="56" y1="35" x2="65" y2="35" stroke="var(--rust)" stroke-width="1.5"/>
+      </g>
+      <g transform="translate(92,2) rotate(8)">
+        <circle cx="20" cy="20" r="18" fill="var(--gold)" stroke="var(--ink)" stroke-width="1.5"/>
+        <circle cx="20" cy="20" r="12" fill="none" stroke="var(--ink)" stroke-width="1"/>
+        <text x="20" y="25" font-family="'Space Mono',monospace" font-size="14" fill="var(--ink)" text-anchor="middle" font-weight="700">$</text>
+      </g>
+      <g transform="translate(114,46) rotate(-10)">
+        <circle cx="13" cy="13" r="12" fill="var(--teal)" stroke="var(--ink)" stroke-width="1.2"/>
+        <text x="13" y="18" font-family="'Space Mono',monospace" font-size="11" fill="#fff" text-anchor="middle" font-weight="700">¢</text>
+      </g>
+    </svg>`;
+  }
+  function brandTitleHtml(){
+    return `<div class="brand-title"><h1><span class="line1">Livro de Gastos</span><span class="line2">Familiar</span></h1></div>`;
+  }
+
   function suggestCategory(desc){
     const kw = keyWord(desc);
     if (!kw) return null;
@@ -145,8 +173,7 @@
     return Array.from(set);
   }
   function knownPayments(){
-    const set = new Set([...DEFAULT_PAYMENTS, ...allExpenses.map(e => e.payment).filter(Boolean)]);
-    return Array.from(set);
+    return PAYMENTS;
   }
 
   function computeTotals(list){
@@ -175,7 +202,8 @@
   function renderSetupNeeded(){
     root.innerHTML = `
       <div class="wrap">
-        <div class="brand"><h1>Livro de Gastos</h1></div>
+        ${moneyDecoSvg()}
+        <div class="brand">${brandTitleHtml()}</div>
         <div class="setup-banner">
           <strong>Falta um passo:</strong> cole a URL do seu Apps Script na constante <code>SCRIPT_URL</code>,
           no topo do arquivo HTML, e publique de novo. Sem isso a página não consegue ler nem salvar
@@ -187,7 +215,8 @@
   function renderError(msg){
     root.innerHTML = `
       <div class="wrap">
-        <div class="brand"><h1>Livro de Gastos</h1></div>
+        ${moneyDecoSvg()}
+        <div class="brand">${brandTitleHtml()}</div>
         <div class="setup-banner" style="background:#FBE2DC;border-color:var(--danger);">
           <strong>Não consegui falar com a planilha.</strong><br>${escapeHtml(msg)}<br>
           Verifique se a URL está certa e se a implantação do Apps Script está com acesso "Qualquer pessoa".
@@ -206,13 +235,12 @@
     }).sort((a,b) => b.date.localeCompare(a.date));
 
     const people = knownPeople();
-    const payments = knownPayments();
 
     root.innerHTML = `
       <div class="wrap">
-        <div class="brand"><h1>Livro de Gastos</h1></div>
-
-        <div class="stamp-row">
+        ${moneyDecoSvg()}
+        <div class="brand">
+          ${brandTitleHtml()}
           <div class="stamp"><div class="lbl">Total do mês</div><div class="val">${fmtMoney(totals.total)}</div></div>
         </div>
 
@@ -227,10 +255,9 @@
             <div class="full"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Combustível, Mercado, Netflix..."></div>
             <div><label>Valor (R$)</label><input type="number" id="f-value" step="0.01" min="0" placeholder="0,00"></div>
             <div><label>Categoria</label><select id="f-cat">${CATEGORIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}</select></div>
-            <div><label>Forma de pagamento</label><input type="text" id="f-pay" list="pay-options" placeholder="Ex: Crédito Itaú">
-              <datalist id="pay-options">${payments.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
-            </div>
-            <div><label>Data</label><input type="text" id="f-date" value="${todayISO()}"></div>
+            <div><label>Forma de pagamento</label><select id="f-pay">${PAYMENTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('')}</select></div>
+            <div id="installments-wrap" style="display:none"><label>Nº de parcelas</label><input type="number" id="f-installments" min="2" max="36" value="2"></div>
+            <div><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
             <div class="full">
               <label>Quem gastou</label>
               <input type="text" id="f-person" list="people-options" value="${escapeHtml(selectedPerson)}" placeholder="Seu nome">
@@ -238,6 +265,7 @@
             </div>
           </div>
           <button class="btn-primary" id="add-btn">Adicionar gasto</button>
+          <div class="hint" id="installments-hint" style="display:none">No campo Valor, informe o total da compra — o app divide automaticamente entre este mês e os seguintes.</div>
           <div class="hint">Dica: salve este link com <code>?eu=SeuNome</code> no final para o campo "Quem gastou" já vir preenchido.</div>
         </div>
 
@@ -284,6 +312,27 @@
       if (sug) root.querySelector('#f-cat').value = sug;
     };
 
+    const paySelect = root.querySelector('#f-pay');
+    const instWrap = root.querySelector('#installments-wrap');
+    const instHint = root.querySelector('#installments-hint');
+    function syncInstallmentsVisibility(){
+      const isParcelado = paySelect.value === 'Cartão de crédito parcelado';
+      instWrap.style.display = isParcelado ? '' : 'none';
+      instHint.style.display = isParcelado ? '' : 'none';
+    }
+    paySelect.onchange = syncInstallmentsVisibility;
+    syncInstallmentsVisibility();
+
+    function addMonthsToISO(iso, n){
+      const [y, m, d] = iso.split('-').map(Number);
+      const totalMonthIndex = (m - 1) + n;
+      const newYear = y + Math.floor(totalMonthIndex / 12);
+      const newMonth = ((totalMonthIndex % 12) + 12) % 12; // 0-11
+      const lastDay = new Date(newYear, newMonth + 1, 0).getDate();
+      const newDay = Math.min(d, lastDay);
+      return newYear + "-" + String(newMonth+1).padStart(2,'0') + "-" + String(newDay).padStart(2,'0');
+    }
+
     root.querySelector('#add-btn').onclick = async () => {
       const desc = root.querySelector('#f-desc').value.trim();
       const value = parseFloat(root.querySelector('#f-value').value);
@@ -291,15 +340,35 @@
       const pay = root.querySelector('#f-pay').value.trim() || 'Não informado';
       const date = root.querySelector('#f-date').value.trim() || todayISO();
       const person = root.querySelector('#f-person').value.trim();
+      const isParcelado = pay === 'Cartão de crédito parcelado';
+      const parcelas = isParcelado ? Math.max(2, parseInt(root.querySelector('#f-installments').value, 10) || 2) : 1;
       if (!desc || isNaN(value) || value <= 0){ alert('Preencha a descrição e um valor válido maior que zero.'); return; }
       if (!person){ alert('Preencha quem gastou.'); return; }
       const btn = root.querySelector('#add-btn');
       btn.disabled = true; btn.textContent = 'Salvando...';
       try {
-        const exp = { date, description: desc, value, category: cat, payment: pay, person };
-        await postExpense(exp);
+        if (isParcelado){
+          const paymentLabel = `Crédito ${parcelas}x`;
+          const base = Math.round((value / parcelas) * 100) / 100;
+          const lastValue = Math.round((value - base * (parcelas - 1)) * 100) / 100;
+          for (let i = 0; i < parcelas; i++){
+            btn.textContent = `Salvando parcela ${i+1} de ${parcelas}...`;
+            const instDate = addMonthsToISO(date, i);
+            const instValue = (i === parcelas - 1) ? lastValue : base;
+            const exp = {
+              date: instDate,
+              description: `${desc} (parcela ${i+1}/${parcelas})`,
+              value: instValue, category: cat, payment: paymentLabel, person
+            };
+            await postExpense(exp);
+            allExpenses.push(exp);
+          }
+        } else {
+          const exp = { date, description: desc, value, category: cat, payment: pay, person };
+          await postExpense(exp);
+          allExpenses.push(exp);
+        }
         selectedPerson = person;
-        allExpenses.push(exp);
         render();
       } catch (err) {
         console.error(err);
