@@ -88,12 +88,12 @@
   // ============================================================
 
   const root = document.getElementById('app-root');
-  const CATEGORIES = ["Alimentação","Assinaturas","Compras","Contas fixas","Educação","Lazer","Moradia","Outros","Saúde","Transporte"];
-  const PAYMENTS = ["Boleto","Cartão de crédito","Cartão de crédito parcelado","Cartão de débito","Cartão Refeição","PIX"];
+  const CATEGORIES = ["Alimentação","Assinaturas","Compras","Compras Manu","Contas fixas","Educação","Lazer","Moradia","Outros","Saúde","Transporte"];
+  const PAYMENTS = ["Boleto","Cartão de crédito","Cartão de crédito parcelado","Cartão de débito","Cartão Refeição","PIX","PIX parcelado"];
 
   let allExpenses = [];
   let currentMonth = new Date();
-  let filters = { category: null, person: null };
+  let filters = { category: null, person: null, payment: null };
   let search = "";
   let selectedPerson = new URLSearchParams(location.search).get('eu') || "";
 
@@ -204,6 +204,7 @@
     let filtered = monthMatches.filter(e => {
       if (filters.category && e.category !== filters.category) return false;
       if (filters.person && e.person !== filters.person) return false;
+      if (filters.payment && e.payment !== filters.payment) return false;
       if (search && !normalize(e.description).includes(normalize(search))) return false;
       return true;
     }).sort((a,b) => b.date.localeCompare(a.date));
@@ -229,7 +230,7 @@
             <div><label>Valor (R$)</label><input type="number" id="f-value" step="0.01" min="0" placeholder="0,00"></div>
             <div><label>Categoria</label><select id="f-cat">${CATEGORIES.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}</select></div>
             <div><label>Forma de pagamento</label><select id="f-pay">${PAYMENTS.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('')}</select></div>
-            <div id="installments-wrap" style="display:none"><label>Nº de parcelas</label><input type="number" id="f-installments" min="2" max="36" value="2"></div>
+            <div id="installments-wrap" style="display:none"><label id="installments-label">Nº de parcelas</label><input type="number" id="f-installments" min="2" max="36" value="2"></div>
             <div><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div>
             <div class="full">
               <label>Quem gastou</label>
@@ -238,7 +239,7 @@
             </div>
           </div>
           <button class="btn-primary" id="add-btn">Adicionar gasto</button>
-          <div class="hint" id="installments-hint" style="display:none">No campo Valor, informe o total da compra — o app divide automaticamente entre este mês e os seguintes.</div>
+          <div class="hint" id="installments-hint" style="display:none"></div>
           <div class="hint">Dica: salve este link com <code>?eu=SeuNome</code> no final para o campo "Quem gastou" já vir preenchido.</div>
         </div>
 
@@ -255,6 +256,10 @@
         <div class="filters">
           <span class="chip ${!filters.person?'active':''}" data-fp="">Todos</span>
           ${people.map(p=>`<span class="chip ${filters.person===p?'active':''}" data-fp="${escapeHtml(p)}">${escapeHtml(p)}</span>`).join('')}
+        </div>
+        <div class="filters">
+          <span class="chip ${!filters.payment?'active':''}" data-fpay="">Todos pagamentos</span>
+          ${Object.keys(totals.byPay).map(p=>`<span class="chip ${filters.payment===p?'active':''}" data-fpay="${escapeHtml(p)}">${escapeHtml(p)}</span>`).join('')}
           <input type="text" class="search-input" id="search-input" placeholder="Buscar descrição..." value="${escapeHtml(search)}">
         </div>
 
@@ -288,10 +293,20 @@
     const paySelect = root.querySelector('#f-pay');
     const instWrap = root.querySelector('#installments-wrap');
     const instHint = root.querySelector('#installments-hint');
+    const instLabel = root.querySelector('#installments-label');
     function syncInstallmentsVisibility(){
-      const isParcelado = paySelect.value === 'Cartão de crédito parcelado';
-      instWrap.style.display = isParcelado ? '' : 'none';
-      instHint.style.display = isParcelado ? '' : 'none';
+      const val = paySelect.value;
+      const isCredito = val === 'Cartão de crédito parcelado';
+      const isPix = val === 'PIX parcelado';
+      instWrap.style.display = (isCredito || isPix) ? '' : 'none';
+      instHint.style.display = (isCredito || isPix) ? '' : 'none';
+      if (isCredito){
+        instLabel.textContent = 'Nº de parcelas';
+        instHint.textContent = 'No campo Valor, informe o total da compra — o app divide automaticamente entre este mês e os seguintes.';
+      } else if (isPix){
+        instLabel.textContent = 'Nº de meses';
+        instHint.textContent = 'No campo Valor, informe o valor fixo da mensalidade — o app lança esse mesmo valor nos próximos meses (ex: internet R$ 99,90 por 10 meses).';
+      }
     }
     paySelect.onchange = syncInstallmentsVisibility;
     syncInstallmentsVisibility();
@@ -313,14 +328,16 @@
       const pay = root.querySelector('#f-pay').value.trim() || 'Não informado';
       const date = root.querySelector('#f-date').value.trim() || todayISO();
       const person = root.querySelector('#f-person').value.trim();
-      const isParcelado = pay === 'Cartão de crédito parcelado';
-      const parcelas = isParcelado ? Math.max(2, parseInt(root.querySelector('#f-installments').value, 10) || 2) : 1;
+      const isCreditoParcelado = pay === 'Cartão de crédito parcelado';
+      const isPixParcelado = pay === 'PIX parcelado';
+      const isRecurring = isCreditoParcelado || isPixParcelado;
+      const parcelas = isRecurring ? Math.max(2, parseInt(root.querySelector('#f-installments').value, 10) || 2) : 1;
       if (!desc || isNaN(value) || value <= 0){ alert('Preencha a descrição e um valor válido maior que zero.'); return; }
       if (!person){ alert('Preencha quem gastou.'); return; }
       const btn = root.querySelector('#add-btn');
       btn.disabled = true; btn.textContent = 'Salvando...';
       try {
-        if (isParcelado){
+        if (isCreditoParcelado){
           const paymentLabel = `Crédito ${parcelas}x`;
           const base = Math.round((value / parcelas) * 100) / 100;
           const lastValue = Math.round((value - base * (parcelas - 1)) * 100) / 100;
@@ -332,6 +349,19 @@
               date: instDate,
               description: `${desc} (parcela ${i+1}/${parcelas})`,
               value: instValue, category: cat, payment: paymentLabel, person
+            };
+            await postExpense(exp);
+            allExpenses.push(exp);
+          }
+        } else if (isPixParcelado){
+          const paymentLabel = `PIX ${parcelas}x`;
+          for (let i = 0; i < parcelas; i++){
+            btn.textContent = `Salvando mês ${i+1} de ${parcelas}...`;
+            const instDate = addMonthsToISO(date, i);
+            const exp = {
+              date: instDate,
+              description: `${desc} (mês ${i+1}/${parcelas})`,
+              value: value, category: cat, payment: paymentLabel, person
             };
             await postExpense(exp);
             allExpenses.push(exp);
@@ -352,6 +382,7 @@
 
     root.querySelectorAll('[data-fc]').forEach(chip => chip.onclick = () => { filters.category = chip.getAttribute('data-fc') || null; render(); });
     root.querySelectorAll('[data-fp]').forEach(chip => chip.onclick = () => { filters.person = chip.getAttribute('data-fp') || null; render(); });
+    root.querySelectorAll('[data-fpay]').forEach(chip => chip.onclick = () => { filters.payment = chip.getAttribute('data-fpay') || null; render(); });
     root.querySelector('#search-input').oninput = (ev) => { search = ev.target.value; };
     root.querySelector('#search-input').onkeyup = (ev) => { if (ev.key === 'Enter') render(); };
     root.querySelector('#search-input').onblur = () => render();
