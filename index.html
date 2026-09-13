@@ -338,7 +338,7 @@
       btn.disabled = true; btn.textContent = 'Salvando...';
       try {
         if (isCreditoParcelado){
-          const paymentLabel = `Crédito ${parcelas}x`;
+          const paymentLabel = 'Cartão de crédito parcelado';
           const base = Math.round((value / parcelas) * 100) / 100;
           const lastValue = Math.round((value - base * (parcelas - 1)) * 100) / 100;
           for (let i = 0; i < parcelas; i++){
@@ -354,7 +354,7 @@
             allExpenses.push(exp);
           }
         } else if (isPixParcelado){
-          const paymentLabel = `PIX ${parcelas}x`;
+          const paymentLabel = 'PIX parcelado';
           for (let i = 0; i < parcelas; i++){
             btn.textContent = `Salvando mês ${i+1} de ${parcelas}...`;
             const instDate = addMonthsToISO(date, i);
